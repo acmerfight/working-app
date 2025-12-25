@@ -4,12 +4,13 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { apiRoutes } from "./routes";
 
-export const app = new Hono();
+// 创建基础 app
+const baseApp = new Hono();
 
 // Middlewares
-app.use("*", logger());
-app.use("*", prettyJSON());
-app.use(
+baseApp.use("*", logger());
+baseApp.use("*", prettyJSON());
+baseApp.use(
   "/api/*",
   cors({
     origin: ["http://localhost:5173"],
@@ -21,19 +22,20 @@ app.use(
   })
 );
 
-// Routes
-app.route("/api", apiRoutes);
-
-// Health check
-app.get("/health", (c) => {
-  return c.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
+// 使用链式调用保持类型安全
+export const app = baseApp
+  // API 路由
+  .route("/api", apiRoutes)
+  // Health check
+  .get("/health", (c) => {
+    return c.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+    });
   });
-});
 
-// 404 Handler
-app.notFound((c) => {
+// 404 Handler (需要单独添加，不影响类型)
+baseApp.notFound((c) => {
   return c.json(
     {
       error: "Not Found",
@@ -44,7 +46,7 @@ app.notFound((c) => {
 });
 
 // Error Handler
-app.onError((err, c) => {
+baseApp.onError((err, c) => {
   console.error(`${err}`);
   return c.json(
     {
@@ -55,5 +57,5 @@ app.onError((err, c) => {
   );
 });
 
+// 导出 App 类型供客户端使用
 export type AppType = typeof app;
-

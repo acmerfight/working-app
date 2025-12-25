@@ -1,9 +1,5 @@
 import { atom } from "jotai";
-import {
-  apiClient,
-  parseEchoResponse,
-  parseHelloResponse,
-} from "../../lib/api-client";
+import { apiClient } from "../../lib/api-client";
 
 // ============ 基础 State Atoms ============
 
@@ -36,7 +32,7 @@ export const resetCountAtom = atom(null, (_get, set) => {
   set(countAtom, 0);
 });
 
-// API actions
+// API actions - 使用端到端类型安全的 Hono RPC 客户端
 export const fetchMessageAtom = atom(null, async (_get, set) => {
   set(apiLoadingAtom, true);
   set(apiErrorAtom, null);
@@ -45,7 +41,8 @@ export const fetchMessageAtom = atom(null, async (_get, set) => {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${String(response.status)}`);
     }
-    const data = await parseHelloResponse(response);
+    // 类型自动推导：data 的类型是 { message: string; timestamp: string }
+    const data = await response.json();
     set(apiMessageAtom, data.message);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -62,13 +59,15 @@ export const sendEchoAtom = atom(null, async (get, set) => {
   set(apiLoadingAtom, true);
   set(apiErrorAtom, null);
   try {
+    // 请求参数类型安全：json 的类型必须是 { message: string }
     const response = await apiClient.echo.$post({
       json: { message: inputValue },
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${String(response.status)}`);
     }
-    const data = await parseEchoResponse(response);
+    // 响应类型自动推导：data 的类型是 { echo: string; originalLength: number; timestamp: string }
+    const data = await response.json();
     set(apiMessageAtom, data.echo);
     set(echoInputAtom, "");
   } catch (error) {
@@ -78,4 +77,3 @@ export const sendEchoAtom = atom(null, async (get, set) => {
     set(apiLoadingAtom, false);
   }
 });
-
