@@ -1,6 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
+import { authRoutes } from "./auth";
+import { calendarsRoutes } from "./calendars";
+import { eventsRoutes } from "./events";
+import { remindersRoutes } from "./reminders";
 import { usersRoutes } from "./users";
 
 // 使用链式调用保持类型安全
@@ -30,8 +34,16 @@ const apiRoutes = new Hono()
       });
     }
   )
+  // 挂载认证路由
+  .route("/auth", authRoutes)
   // 挂载用户路由 (使用 Drizzle)
-  .route("/users", usersRoutes);
+  .route("/users", usersRoutes)
+  // 挂载日历路由
+  .route("/calendars", calendarsRoutes)
+  // 挂载事件路由
+  .route("/events", eventsRoutes)
+  // 挂载提醒路由
+  .route("/reminders", remindersRoutes);
 
 // 导出路由和类型
 export { apiRoutes };
