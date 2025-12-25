@@ -1,0 +1,33 @@
+{
+  "name": "working-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:client": "pnpm --filter @working-app/client dev",
+    "dev:server": "pnpm --filter @working-app/server dev",
+    "build": "pnpm -r build",
+    "build:client": "pnpm --filter @working-app/client build",
+    "build:server": "pnpm --filter @working-app/server build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:client": "pnpm --filter @working-app/client test",
+    "test:server": "pnpm --filter @working-app/server test",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.1"
+}
+
