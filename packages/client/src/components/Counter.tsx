@@ -1,12 +1,17 @@
-import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useState } from "react";
-import { apiClient } from "../lib/api-client";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useCallback } from "react";
+import {
+  apiClient,
+  parseEchoResponse,
+  parseHelloResponse,
+} from "../lib/api-client";
 import {
   apiErrorAtom,
   apiLoadingAtom,
   apiMessageAtom,
   countAtom,
   doubleCountAtom,
+  echoInputAtom,
 } from "../store";
 
 export function Counter() {
@@ -15,7 +20,8 @@ export function Counter() {
   const [apiMessage, setApiMessage] = useAtom(apiMessageAtom);
   const [isLoading, setIsLoading] = useAtom(apiLoadingAtom);
   const [apiError, setApiError] = useAtom(apiErrorAtom);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useAtom(echoInputAtom);
+  const resetInput = useSetAtom(echoInputAtom);
 
   const increment = useCallback(() => {
     setCount((prev) => prev + 1);
@@ -36,10 +42,9 @@ export function Counter() {
     try {
       const response = await apiClient.hello.$get();
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${String(response.status)}`);
       }
-      // data 类型自动推断为 { message: string; timestamp: string }
-      const data = await response.json();
+      const data = await parseHelloResponse(response);
       setApiMessage(data.message);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -59,19 +64,18 @@ export function Counter() {
         json: { message: inputValue },
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${String(response.status)}`);
       }
-      // data 类型自动推断为 { echo: string; originalLength: number; timestamp: string }
-      const data = await response.json();
+      const data = await parseEchoResponse(response);
       setApiMessage(data.echo);
-      setInputValue("");
+      resetInput("");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       setApiError(message);
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, setApiMessage, setIsLoading, setApiError]);
+  }, [inputValue, setApiMessage, setIsLoading, setApiError, resetInput]);
 
   return (
     <section className="counter-section">
@@ -114,7 +118,9 @@ export function Counter() {
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+            }}
             placeholder="输入要回显的消息..."
             className="input"
           />

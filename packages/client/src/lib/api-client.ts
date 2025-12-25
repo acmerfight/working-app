@@ -1,29 +1,52 @@
-import { hc } from "hono/client";
-import type { AppType } from "@working-app/server/app";
+// API 响应类型定义
+interface HelloResponse {
+  message: string;
+  timestamp: string;
+}
 
-// 类型安全的 API 客户端
-// 自动推断所有 API 端点的请求/响应类型
-export const api = hc<AppType>("/");
+interface EchoResponse {
+  echo: string;
+  originalLength: number;
+  timestamp: string;
+}
 
-// 便捷访问器
-export const apiClient = api.api;
+interface EchoRequest {
+  message: string;
+}
 
-// 使用示例:
-// const res = await apiClient.hello.$get();
-// const data = await res.json(); // 自动推断类型为 { message: string; timestamp: string }
-//
-// const res = await apiClient.echo.$post({ json: { message: "hello" } });
-// const data = await res.json(); // 自动推断类型
-//
-// const res = await apiClient.users.$get();
-// const data = await res.json(); // 自动推断类型为 { users: User[] }
-
-// 保留原有的通用函数以兼容旧代码
 const baseUrl = "/api";
 
+// 类型安全的 API 客户端
+export const apiClient = {
+  hello: {
+    async $get(): Promise<Response> {
+      return fetch(`${baseUrl}/hello`);
+    },
+  },
+  echo: {
+    async $post(options: { json: EchoRequest }): Promise<Response> {
+      return fetch(`${baseUrl}/echo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options.json),
+      });
+    },
+  },
+};
+
+// 类型化的响应解析器
+export async function parseHelloResponse(res: Response): Promise<HelloResponse> {
+  return res.json() as Promise<HelloResponse>;
+}
+
+export async function parseEchoResponse(res: Response): Promise<EchoResponse> {
+  return res.json() as Promise<EchoResponse>;
+}
+
+// 通用 API 函数
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${baseUrl}${path}`);
-  if (!res.ok) throw new Error(`API Error: ${res.status}`);
+  if (!res.ok) throw new Error(`API Error: ${String(res.status)}`);
   return res.json() as Promise<T>;
 }
 
@@ -33,7 +56,7 @@ export async function apiPost<T>(path: string, data: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`API Error: ${res.status}`);
+  if (!res.ok) throw new Error(`API Error: ${String(res.status)}`);
   return res.json() as Promise<T>;
 }
 

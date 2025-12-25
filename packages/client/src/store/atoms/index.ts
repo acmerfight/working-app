@@ -11,3 +11,6 @@ export const apiMessageAtom = atom<string | null>(null);
 export const apiLoadingAtom = atom(false);
 export const apiErrorAtom = atom<string | null>(null);
 
+// Echo 输入框 atom
+export const echoInputAtom = atom("");
+

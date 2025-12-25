@@ -4,7 +4,7 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { apiRoutes } from "./routes";
 
-const app = new Hono();
+export const app = new Hono();
 
 // Middlewares
 app.use("*", logger());
@@ -21,8 +21,8 @@ app.use(
   })
 );
 
-// Routes - 使用链式调用以保留类型信息
-const routes = app.route("/api", apiRoutes);
+// Routes
+app.route("/api", apiRoutes);
 
 // Health check
 app.get("/health", (c) => {
@@ -55,7 +55,5 @@ app.onError((err, c) => {
   );
 });
 
-// 导出 app 实例和类型
-export { app };
-export type AppType = typeof routes;
+export type AppType = typeof app;
 
