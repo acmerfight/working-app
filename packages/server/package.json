@@ -3,6 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./app": {
+      "types": "./src/app.ts",
+      "default": "./src/app.ts"
+    }
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

@@ -28,27 +28,220 @@ Feature: [功能名称]
     Then [期望结果]
 ```
 
-## 示例
-
-```gherkin
-Feature: 计数器
-  As a 用户
-  I want 增减计数
-  So that 可以跟踪数量
-
-  Scenario: 增加计数
-    Given 当前计数为 0
-    When 用户点击 "+1" 按钮
-    Then 计数应该变为 1
-
-  Scenario: 减少计数
-    Given 当前计数为 5
-    When 用户点击 "-1" 按钮
-    Then 计数应该变为 4
-```
-
 ## 规则
 
 - **任何功能开发前，必须先设计 BDD Case**
 - 测试文件命名：`*.test.ts` 或 `*.test.tsx`
 - 使用 Vitest + Testing Library
+
+---
+
+# 测试最佳实践
+
+## 核心策略：前后端集成测试（Atoms + Hono）
+
+所有测试通过 Jotai Atoms 进行，同时调用真实的 Hono 后端，**不启动服务器**。
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    测试执行流程                          │
+├─────────────────────────────────────────────────────────┤
+│  store.set(actionAtom)                                  │
+│       ↓                                                 │
+│  Atom action 调用 fetch('/api/xxx')                     │
+│       ↓                                                 │
+│  vi.stubGlobal 拦截 → 转发给 app.request()              │
+│       ↓                                                 │
+│  Hono 服务端代码执行（真实！不启动服务器）                │
+│       ↓                                                 │
+│  Atom 解析响应 → 更新状态                               │
+│       ↓                                                 │
+│  测试断言：验证状态变化                                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+## 测试文件结构
+
+```
+packages/client/src/store/__tests__/
+└── atoms-integration.test.ts    # 统一的前后端集成测试
+```
+
+## 测试模板
+
+```typescript
+import { createStore } from "jotai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { app } from "@working-app/server/app";
+import { myAtom, myActionAtom, loadingAtom } from "../atoms";
+
+// 辅助函数：配置 Hono 作为测试后端
+function setupHonoFetch() {
+  vi.stubGlobal(
+    "fetch",
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      const fullUrl = url.startsWith("http") ? url : `http://localhost${url}`;
+      return app.request(fullUrl, init);
+    }
+  );
+}
+
+// 辅助函数：追踪状态变化历史
+function trackAtomChanges<T>(
+  store: ReturnType<typeof createStore>,
+  atom: typeof loadingAtom
+) {
+  const history: T[] = [];
+  store.sub(atom, () => {
+    history.push(store.get(atom) as T);
+  });
+  return history;
+}
+
+describe("Feature: 功能名称", () => {
+  beforeEach(() => {
+    setupHonoFetch();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  describe("Scenario: 场景名称", () => {
+    it("Given 前置条件, When 触发动作, Then 期望结果", async () => {
+      // Given
+      const store = createStore();
+      expect(store.get(myAtom)).toBe(initialValue);
+
+      // When
+      await store.set(myActionAtom);
+
+      // Then
+      expect(store.get(myAtom)).toBe(expectedValue);
+    });
+  });
+});
+```
+
+## 必须验证的内容
+
+### 1. 状态变化
+
+```typescript
+it("应该正确更新状态", async () => {
+  const store = createStore();
+
+  await store.set(fetchDataAtom);
+
+  expect(store.get(dataAtom)).toBe("expected value");
+});
+```
+
+### 2. Loading 状态（必须！）
+
+```typescript
+it("Loading 状态应该经历 false → true → false", async () => {
+  const store = createStore();
+  const loadingHistory = trackAtomChanges<boolean>(store, loadingAtom);
+
+  await store.set(fetchDataAtom);
+
+  expect(loadingHistory).toEqual([true, false]);
+});
+```
+
+### 3. 错误处理
+
+```typescript
+it("网络错误时应该正确设置错误状态", async () => {
+  const store = createStore();
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+  await store.set(fetchDataAtom);
+
+  expect(store.get(errorAtom)).toBe("Network error");
+  expect(store.get(loadingAtom)).toBe(false); // 即使出错也要结束 loading
+});
+```
+
+## 跨包导入配置
+
+使用 TypeScript Project References 实现类型安全的跨包导入：
+
+### Server 包 (`package.json`)
+
+```json
+{
+  "exports": {
+    "./app": {
+      "types": "./src/app.ts",
+      "default": "./src/app.ts"
+    }
+  }
+}
+```
+
+### Client 包 (`tsconfig.json`)
+
+```json
+{
+  "references": [{ "path": "../shared" }, { "path": "../server" }]
+}
+```
+
+### Vitest 配置 (`vitest.config.ts`)
+
+```typescript
+resolve: {
+  alias: {
+    "@working-app/server": resolve(__dirname, "../server/src"),
+  },
+}
+```
+
+## 示例：完整的 BDD 测试
+
+```gherkin
+Feature: API 交互
+  As a 用户
+  I want 获取服务器消息
+  So that 可以看到最新内容
+
+  Scenario: 获取问候消息
+    Given 用户打开页面
+    When 调用 fetchMessage
+    Then 应该显示服务器问候语
+    And Loading 状态应该经历 false → true → false
+```
+
+对应的测试代码：
+
+```typescript
+describe("Feature: API 交互", () => {
+  beforeEach(() => setupHonoFetch());
+  afterEach(() => vi.unstubAllGlobals());
+
+  describe("Scenario: 获取问候消息", () => {
+    it("Given 用户打开页面, When 调用 fetchMessage, Then 应该显示服务器问候语", async () => {
+      const store = createStore();
+      const loadingHistory = trackAtomChanges<boolean>(store, apiLoadingAtom);
+
+      await store.set(fetchMessageAtom);
+
+      expect(store.get(apiMessageAtom)).toBe("Hello from Hono! 🔥");
+      expect(loadingHistory).toEqual([true, false]);
+    });
+  });
+});
+```
+
+## 优势
+
+| 优势        | 说明                             |
+| ----------- | -------------------------------- |
+| ⚡ 快速     | 无网络开销，毫秒级运行           |
+| 🔗 真实     | 测试真实的后端逻辑               |
+| 🚫 无端口   | 不占用端口，CI 友好              |
+| 🎯 端到端   | 前端状态 → API → 后端 → 状态更新 |
+| 📝 BDD 格式 | Given/When/Then 结构清晰         |

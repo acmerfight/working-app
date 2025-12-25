@@ -93,13 +93,13 @@ pnpm format
 
 ## API 端点
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/api/hello` | 返回欢迎消息 |
-| POST | `/api/echo` | 回显发送的消息 |
-| GET | `/api/users` | 获取用户列表 |
-| GET | `/api/users/:id` | 获取单个用户 |
-| GET | `/health` | 健康检查 |
+| 方法 | 路径             | 描述           |
+| ---- | ---------------- | -------------- |
+| GET  | `/api/hello`     | 返回欢迎消息   |
+| POST | `/api/echo`      | 回显发送的消息 |
+| GET  | `/api/users`     | 获取用户列表   |
+| GET  | `/api/users/:id` | 获取单个用户   |
+| GET  | `/health`        | 健康检查       |
 
 ## 端口配置
 
@@ -126,4 +126,3 @@ pnpm format
 ## License
 
 MIT
-
