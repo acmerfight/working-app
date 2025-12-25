@@ -1,6 +1,9 @@
 import { atom } from "jotai";
 import { apiClient } from "../../lib/api-client";
 
+// 导出 error atoms
+export * from "./error";
+
 // ============ 基础 State Atoms ============
 
 // 计数器 atom
