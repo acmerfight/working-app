@@ -10,28 +10,72 @@ alwaysApply: true
 
 - **React 只负责 UI 渲染**
 - **Jotai 负责所有状态管理和业务逻辑**
-- **严格分离关注点**
+- **所有业务逻辑可脱离组件独立测试**
 
-## 禁止使用的 React Hooks
+## 状态与渲染分离标准
+
+### ✅ 正确做法
 
 ```typescript
-// ❌ 禁止
-useState; // 使用 atom 替代
-useReducer; // 使用 atom 替代
-useCallback; // 使用 action atoms + useSetAtom 替代
-useMemo; // 使用派生 atom 替代
-useEffect; // 使用 atomEffect 或 onMount 替代
-useRef; // 仅 DOM 引用可用，状态相关禁止
-useContext; // 使用 Provider + atom 替代
+// 业务逻辑在 atoms 中，可独立测试
+export const fetchUserAtom = atom(null, async (get, set) => {
+  set(loadingAtom, true);
+  const user = await api.getUser();
+  set(userAtom, user);
+  set(loadingAtom, false);
+});
+
+// 组件只负责渲染和触发
+function UserProfile() {
+  const user = useAtomValue(userAtom);
+  const fetchUser = useSetAtom(fetchUserAtom);
+  return <button onClick={fetchUser}>{user?.name}</button>;
+}
 ```
 
-## 允许使用的 Jotai Hooks
+### ❌ 错误做法
 
 ```typescript
-// ✅ 允许
+// 业务逻辑耦合在组件中，难以测试
+function UserProfile() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUser = useCallback(async () => {
+    setLoading(true);
+    const user = await api.getUser();
+    setUser(user);
+    setLoading(false);
+  }, []);
+
+  return <button onClick={fetchUser}>{user?.name}</button>;
+}
+```
+
+## Hooks 使用规范
+
+### 禁止（状态管理相关）
+
+```typescript
+useState; // → 使用 atom 替代
+useReducer; // → 使用 atom 替代
+useCallback; // → 使用 action atoms + useSetAtom 替代
+useMemo; // → 使用派生 atom 替代
+useContext; // → 使用 Provider + atom 替代
+```
+
+### 允许
+
+```typescript
+// Jotai hooks
 useAtom; // 读写 atom
 useAtomValue; // 只读 atom
 useSetAtom; // 只写 atom（用于 action atoms）
+
+// React hooks（仅限 DOM/渲染相关场景）
+useRef; // DOM 引用、第三方库实例
+useEffect; // DOM 操作、第三方库集成、动画
+useLayoutEffect; // DOM 测量
 ```
 
 ## Atom 分类
@@ -43,39 +87,63 @@ export const countAtom = atom(0);
 export const userAtom = atom<User | null>(null);
 ```
 
-### 2. Derived Atoms（派生原子）- 替代 useMemo
+### 2. Derived Atoms（派生原子）
 
 ```typescript
 export const doubleCountAtom = atom((get) => get(countAtom) * 2);
 export const isLoggedInAtom = atom((get) => get(userAtom) !== null);
 ```
 
-### 3. Action Atoms（行为原子）- 替代 useCallback
+### 3. Action Atoms（行为原子）
 
 ```typescript
+// 同步 action
 export const incrementAtom = atom(null, (get, set) => {
   set(countAtom, get(countAtom) + 1);
 });
 
-// 异步 action
+// 异步 action（包含完整业务逻辑）
 export const fetchUserAtom = atom(null, async (get, set) => {
   set(loadingAtom, true);
+  set(errorAtom, null);
   try {
     const user = await api.getUser();
     set(userAtom, user);
+  } catch (error) {
+    set(errorAtom, error.message);
   } finally {
     set(loadingAtom, false);
   }
 });
 ```
 
-### 4. Effect Atoms（副作用原子）- 替代 useEffect
+### 4. 初始化副作用（使用 onMount）
 
 ```typescript
-import { atomEffect } from "jotai-effect";
+const initAtom = atom<Data | null>(null);
 
-export const logCountEffect = atomEffect((get) => {
-  console.log("Count changed:", get(countAtom));
+initAtom.onMount = (set) => {
+  fetchInitialData().then(set);
+  return () => {
+    /* cleanup */
+  };
+};
+```
+
+## 可测试性要求
+
+所有业务逻辑必须可以通过 Jotai store 独立测试：
+
+```typescript
+import { createStore } from "jotai";
+
+it("应该正确获取用户", async () => {
+  const store = createStore();
+
+  await store.set(fetchUserAtom);
+
+  expect(store.get(userAtom)).toEqual({ id: 1, name: "Test" });
+  expect(store.get(loadingAtom)).toBe(false);
 });
 ```
 
@@ -83,7 +151,6 @@ export const logCountEffect = atomEffect((get) => {
 
 ```typescript
 import { useAtomValue, useSetAtom } from "jotai";
-import { dataAtom, loadingAtom, actionAtom } from "../store";
 
 export function MyComponent() {
   // 只读状态
@@ -101,4 +168,30 @@ export function MyComponent() {
     </div>
   );
 }
+```
+
+## 何时允许 useEffect
+
+仅限以下场景：
+
+```typescript
+// ✅ DOM 操作
+useEffect(() => {
+  inputRef.current?.focus();
+}, []);
+
+// ✅ 第三方库集成
+useEffect(() => {
+  const chart = new Chart(canvasRef.current, config);
+  return () => chart.destroy();
+}, []);
+
+// ✅ 浏览器 API
+useEffect(() => {
+  const handler = () => {
+    /* resize */
+  };
+  window.addEventListener("resize", handler);
+  return () => window.removeEventListener("resize", handler);
+}, []);
 ```

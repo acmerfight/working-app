@@ -30,7 +30,8 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      // 禁止使用 React hooks，强制使用 Jotai（React 只负责渲染）
+      // 禁止状态管理相关 hooks，强制使用 Jotai（React 只负责渲染）
+      // 允许 useEffect/useLayoutEffect/useRef 用于 DOM 操作
       "no-restricted-imports": [
         "error",
         {
@@ -49,11 +50,6 @@ export default tseslint.config(
               name: "react",
               importNames: ["useMemo"],
               message: "请使用 Jotai 派生 atom 替代",
-            },
-            {
-              name: "react",
-              importNames: ["useEffect", "useLayoutEffect"],
-              message: "请使用 jotai-effect 的 atomEffect 替代",
             },
             {
               name: "react",
