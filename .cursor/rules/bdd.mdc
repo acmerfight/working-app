@@ -1,0 +1,54 @@
+---
+description: BDD 开发模式规范
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: true
+---
+
+# BDD 开发模式
+
+## 开发流程
+
+1. **需求分析** → 理解用户故事
+2. **设计 BDD Case** → 先写 Given/When/Then 场景
+3. **编写测试** → 根据 BDD Case 编写测试代码
+4. **实现功能** → 让测试通过
+5. **重构** → 优化代码
+
+## BDD Case 格式
+
+```gherkin
+Feature: [功能名称]
+  As a [角色]
+  I want [目标]
+  So that [收益]
+
+  Scenario: [场景名称]
+    Given [前置条件]
+    When [触发动作]
+    Then [期望结果]
+```
+
+## 示例
+
+```gherkin
+Feature: 计数器
+  As a 用户
+  I want 增减计数
+  So that 可以跟踪数量
+
+  Scenario: 增加计数
+    Given 当前计数为 0
+    When 用户点击 "+1" 按钮
+    Then 计数应该变为 1
+
+  Scenario: 减少计数
+    Given 当前计数为 5
+    When 用户点击 "-1" 按钮
+    Then 计数应该变为 4
+```
+
+## 规则
+
+- **任何功能开发前，必须先设计 BDD Case**
+- 测试文件命名：`*.test.ts` 或 `*.test.tsx`
+- 使用 Vitest + Testing Library

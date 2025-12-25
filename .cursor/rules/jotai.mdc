@@ -1,0 +1,104 @@
+---
+description: Jotai 状态管理规范 - React 只负责渲染
+globs: ["packages/client/**/*.ts", "packages/client/**/*.tsx"]
+alwaysApply: true
+---
+
+# 架构规范：React 渲染 + Jotai 状态
+
+## 核心原则
+
+- **React 只负责 UI 渲染**
+- **Jotai 负责所有状态管理和业务逻辑**
+- **严格分离关注点**
+
+## 禁止使用的 React Hooks
+
+```typescript
+// ❌ 禁止
+useState      // 使用 atom 替代
+useReducer    // 使用 atom 替代
+useCallback   // 使用 action atoms + useSetAtom 替代
+useMemo       // 使用派生 atom 替代
+useEffect     // 使用 atomEffect 或 onMount 替代
+useRef        // 仅 DOM 引用可用，状态相关禁止
+useContext    // 使用 Provider + atom 替代
+```
+
+## 允许使用的 Jotai Hooks
+
+```typescript
+// ✅ 允许
+useAtom       // 读写 atom
+useAtomValue  // 只读 atom
+useSetAtom    // 只写 atom（用于 action atoms）
+```
+
+## Atom 分类
+
+### 1. State Atoms（状态原子）
+
+```typescript
+export const countAtom = atom(0);
+export const userAtom = atom<User | null>(null);
+```
+
+### 2. Derived Atoms（派生原子）- 替代 useMemo
+
+```typescript
+export const doubleCountAtom = atom((get) => get(countAtom) * 2);
+export const isLoggedInAtom = atom((get) => get(userAtom) !== null);
+```
+
+### 3. Action Atoms（行为原子）- 替代 useCallback
+
+```typescript
+export const incrementAtom = atom(null, (get, set) => {
+  set(countAtom, get(countAtom) + 1);
+});
+
+// 异步 action
+export const fetchUserAtom = atom(null, async (get, set) => {
+  set(loadingAtom, true);
+  try {
+    const user = await api.getUser();
+    set(userAtom, user);
+  } finally {
+    set(loadingAtom, false);
+  }
+});
+```
+
+### 4. Effect Atoms（副作用原子）- 替代 useEffect
+
+```typescript
+import { atomEffect } from 'jotai-effect';
+
+export const logCountEffect = atomEffect((get) => {
+  console.log('Count changed:', get(countAtom));
+});
+```
+
+## 组件结构模板
+
+```typescript
+import { useAtomValue, useSetAtom } from "jotai";
+import { dataAtom, loadingAtom, actionAtom } from "../store";
+
+export function MyComponent() {
+  // 只读状态
+  const data = useAtomValue(dataAtom);
+  const isLoading = useAtomValue(loadingAtom);
+  
+  // Action（稳定引用，无需 useCallback）
+  const doAction = useSetAtom(actionAtom);
+
+  // 纯渲染，无业务逻辑
+  return (
+    <div>
+      {isLoading ? <Spinner /> : <Content data={data} />}
+      <button onClick={doAction}>执行</button>
+    </div>
+  );
+}
+```

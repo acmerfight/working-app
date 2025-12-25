@@ -1,0 +1,50 @@
+---
+description: 通用项目规范
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Working App 通用规范
+
+## 语言
+
+- **始终使用中文回复**
+
+## 技术栈
+
+- React 19 + TypeScript
+- Jotai（状态管理）
+- Hono（后端 API）
+- Vite（构建工具）
+- Vitest（测试）
+- pnpm（包管理）
+- Drizzle ORM（数据库）
+
+## 文件结构
+
+```
+src/
+├── components/        # React 组件（纯渲染）
+├── store/
+│   ├── atoms/        # 所有 atoms 定义
+│   │   ├── index.ts  # 导出所有 atoms
+│   │   ├── user.ts   # 用户相关 atoms
+│   │   └── ui.ts     # UI 状态 atoms
+│   └── index.ts      # Store 配置
+├── lib/              # 工具函数、API 客户端
+└── test/             # 测试配置
+```
+
+## 测试规范
+
+- 使用 Vitest
+- Atoms 应独立测试
+- 组件测试使用 Testing Library
+- 测试文件命名：`*.test.ts` 或 `*.test.tsx`
+
+## 代码风格
+
+- 使用 ESLint + Prettier
+- 类型优先使用 `type` 而非 `interface`
+- 组件使用函数式声明
+- 导入类型使用 `import type`
