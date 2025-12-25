@@ -30,7 +30,7 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      // 禁止使用 React 的状态管理 hooks，强制使用 Jotai
+      // 禁止使用 React hooks，强制使用 Jotai（React 只负责渲染）
       "no-restricted-imports": [
         "error",
         {
@@ -38,12 +38,27 @@ export default tseslint.config(
             {
               name: "react",
               importNames: ["useState", "useReducer"],
-              message: "请使用 Jotai atom 进行状态管理，禁止使用 useState/useReducer",
+              message: "请使用 Jotai atom 进行状态管理",
             },
             {
               name: "react",
               importNames: ["useCallback"],
-              message: "请使用 Jotai action atoms + useSetAtom 替代 useCallback",
+              message: "请使用 Jotai action atoms + useSetAtom 替代",
+            },
+            {
+              name: "react",
+              importNames: ["useMemo"],
+              message: "请使用 Jotai 派生 atom 替代",
+            },
+            {
+              name: "react",
+              importNames: ["useEffect", "useLayoutEffect"],
+              message: "请使用 jotai-effect 的 atomEffect 替代",
+            },
+            {
+              name: "react",
+              importNames: ["useContext"],
+              message: "请使用 Jotai Provider + atom 替代",
             },
           ],
         },
