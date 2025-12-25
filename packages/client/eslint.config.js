@@ -40,6 +40,11 @@ export default tseslint.config(
               importNames: ["useState", "useReducer"],
               message: "请使用 Jotai atom 进行状态管理，禁止使用 useState/useReducer",
             },
+            {
+              name: "react",
+              importNames: ["useCallback"],
+              message: "请使用 Jotai action atoms + useSetAtom 替代 useCallback",
+            },
           ],
         },
       ],

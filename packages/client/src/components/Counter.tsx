@@ -1,81 +1,33 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback } from "react";
-import {
-  apiClient,
-  parseEchoResponse,
-  parseHelloResponse,
-} from "../lib/api-client";
 import {
   apiErrorAtom,
   apiLoadingAtom,
   apiMessageAtom,
   countAtom,
+  decrementAtom,
   doubleCountAtom,
   echoInputAtom,
+  fetchMessageAtom,
+  incrementAtom,
+  resetCountAtom,
+  sendEchoAtom,
 } from "../store";
 
 export function Counter() {
-  const [count, setCount] = useAtom(countAtom);
+  // 读取状态
+  const count = useAtomValue(countAtom);
   const doubleCount = useAtomValue(doubleCountAtom);
-  const [apiMessage, setApiMessage] = useAtom(apiMessageAtom);
-  const [isLoading, setIsLoading] = useAtom(apiLoadingAtom);
-  const [apiError, setApiError] = useAtom(apiErrorAtom);
+  const apiMessage = useAtomValue(apiMessageAtom);
+  const isLoading = useAtomValue(apiLoadingAtom);
+  const apiError = useAtomValue(apiErrorAtom);
   const [inputValue, setInputValue] = useAtom(echoInputAtom);
-  const resetInput = useSetAtom(echoInputAtom);
 
-  const increment = useCallback(() => {
-    setCount((prev) => prev + 1);
-  }, [setCount]);
-
-  const decrement = useCallback(() => {
-    setCount((prev) => prev - 1);
-  }, [setCount]);
-
-  const reset = useCallback(() => {
-    setCount(0);
-  }, [setCount]);
-
-  // 使用类型安全的 API 客户端
-  const fetchMessage = useCallback(async () => {
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const response = await apiClient.hello.$get();
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${String(response.status)}`);
-      }
-      const data = await parseHelloResponse(response);
-      setApiMessage(data.message);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setApiError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setApiMessage, setIsLoading, setApiError]);
-
-  // 使用类型安全的 API 客户端
-  const handleEcho = useCallback(async () => {
-    if (!inputValue.trim()) return;
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const response = await apiClient.echo.$post({
-        json: { message: inputValue },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${String(response.status)}`);
-      }
-      const data = await parseEchoResponse(response);
-      setApiMessage(data.echo);
-      resetInput("");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setApiError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputValue, setApiMessage, setIsLoading, setApiError, resetInput]);
+  // Action atoms - useSetAtom 返回稳定的函数引用，无需 useCallback
+  const increment = useSetAtom(incrementAtom);
+  const decrement = useSetAtom(decrementAtom);
+  const reset = useSetAtom(resetCountAtom);
+  const fetchMessage = useSetAtom(fetchMessageAtom);
+  const handleEcho = useSetAtom(sendEchoAtom);
 
   return (
     <section className="counter-section">
