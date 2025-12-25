@@ -8,7 +8,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@working-app/shared": ["../shared/src"]
+      "@working-app/shared": ["../shared/src"],
+      "@working-app/server/*": ["../server/src/*"]
     },
     "outDir": "./dist",
     "rootDir": "./src",

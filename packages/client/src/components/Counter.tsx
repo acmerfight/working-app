@@ -1,5 +1,6 @@
 import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useState } from "react";
+import { apiClient } from "../lib/api-client";
 import {
   apiErrorAtom,
   apiLoadingAtom,
@@ -28,15 +29,17 @@ export function Counter() {
     setCount(0);
   }, [setCount]);
 
+  // 使用类型安全的 API 客户端
   const fetchMessage = useCallback(async () => {
     setIsLoading(true);
     setApiError(null);
     try {
-      const response = await fetch("/api/hello");
+      const response = await apiClient.hello.$get();
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = (await response.json()) as { message: string };
+      // data 类型自动推断为 { message: string; timestamp: string }
+      const data = await response.json();
       setApiMessage(data.message);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -46,20 +49,20 @@ export function Counter() {
     }
   }, [setApiMessage, setIsLoading, setApiError]);
 
+  // 使用类型安全的 API 客户端
   const handleEcho = useCallback(async () => {
     if (!inputValue.trim()) return;
     setIsLoading(true);
     setApiError(null);
     try {
-      const response = await fetch("/api/echo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: inputValue }),
+      const response = await apiClient.echo.$post({
+        json: { message: inputValue },
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = (await response.json()) as { echo: string };
+      // data 类型自动推断为 { echo: string; originalLength: number; timestamp: string }
+      const data = await response.json();
       setApiMessage(data.echo);
       setInputValue("");
     } catch (error) {

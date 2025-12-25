@@ -1,9 +1,24 @@
-// API 客户端配置
-// 生产环境中可以使用 hono/client 实现类型安全的 RPC 调用
-// import { hc } from "hono/client";
-// import type { AppType } from "@working-app/server/src/app";
-// export const client = hc<AppType>(baseUrl);
+import { hc } from "hono/client";
+import type { AppType } from "@working-app/server/app";
 
+// 类型安全的 API 客户端
+// 自动推断所有 API 端点的请求/响应类型
+export const api = hc<AppType>("/");
+
+// 便捷访问器
+export const apiClient = api.api;
+
+// 使用示例:
+// const res = await apiClient.hello.$get();
+// const data = await res.json(); // 自动推断类型为 { message: string; timestamp: string }
+//
+// const res = await apiClient.echo.$post({ json: { message: "hello" } });
+// const data = await res.json(); // 自动推断类型
+//
+// const res = await apiClient.users.$get();
+// const data = await res.json(); // 自动推断类型为 { users: User[] }
+
+// 保留原有的通用函数以兼容旧代码
 const baseUrl = "/api";
 
 export async function apiGet<T>(path: string): Promise<T> {
