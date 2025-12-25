@@ -1,23 +1,37 @@
-import { Provider } from "jotai";
-import { Counter } from "./components/Counter";
+import { Provider, useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
+import { AuthPage } from "./components/auth";
+import { Calendar } from "./components/calendar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { store } from "./store";
+import { isAuthenticatedAtom, initAuthAtom } from "./store/atoms/auth";
+
+/**
+ * 应用主内容组件
+ * 根据认证状态显示不同页面
+ */
+function AppContent() {
+  const isAuthenticated = useAtomValue(isAuthenticatedAtom);
+  const initAuth = useSetAtom(initAuthAtom);
+
+  // 应用启动时初始化认证状态
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
+  return <Calendar />;
+}
 
 export function App() {
   return (
     <Provider store={store}>
       <ErrorBoundary>
-        <div className="app">
-          <header className="header">
-            <h1>Working App</h1>
-            <p className="subtitle">Hono + React + Jotai + TypeScript</p>
-          </header>
-          <main className="main">
-            <Counter />
-          </main>
-        </div>
+        <AppContent />
       </ErrorBoundary>
     </Provider>
   );
 }
-

@@ -20,11 +20,11 @@ type ErrorBoundaryProps = {
   /**
    * 错误发生时的回调
    */
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
   /**
    * 恢复后的回调
    */
-  onRecover?: () => void;
+  onRecover?: (() => void) | undefined;
 };
 
 type ErrorBoundaryState = {
@@ -62,7 +62,7 @@ class ErrorBoundaryClass extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // 通过 Jotai 记录错误
     this.props.logError(error, {
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack ?? null,
     });
 
     // 调用外部回调
@@ -108,7 +108,7 @@ export function ErrorBoundary({
 // ============ Default Fallback UI ============
 
 type ErrorFallbackProps = {
-  onRecover?: () => void;
+  onRecover?: (() => void) | undefined;
 };
 
 /**
@@ -146,7 +146,7 @@ function DefaultErrorFallback({ onRecover }: ErrorFallbackProps) {
           应用遇到了一个意外错误，我们已经记录了这个问题。
         </p>
 
-        {import.meta.env.DEV && error && (
+        {import.meta.env?.DEV && error && (
           <ErrorDetails error={error} />
         )}
 
