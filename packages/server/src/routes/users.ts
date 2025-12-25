@@ -5,6 +5,11 @@ import { z } from "zod";
 import { db } from "../db";
 import { insertUserSchema, users } from "../db/schema";
 
+// Path 参数 schema - 类型安全的 ID 验证
+const idParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
 // 创建用户 schema
 const createUserSchema = insertUserSchema.pick({
   name: true,
@@ -25,12 +30,8 @@ export const usersRoutes = new Hono()
     return c.json({ users: allUsers });
   })
   // GET /users/:id - 获取单个用户
-  .get("/:id", async (c) => {
-    const id = Number(c.req.param("id"));
-
-    if (Number.isNaN(id)) {
-      return c.json({ error: "Invalid user ID" }, 400);
-    }
+  .get("/:id", zValidator("param", idParamSchema), async (c) => {
+    const { id } = c.req.valid("param");
 
     const user = await db.select().from(users).where(eq(users.id, id)).limit(1);
 
@@ -49,33 +50,30 @@ export const usersRoutes = new Hono()
     return c.json({ user: newUser[0] }, 201);
   })
   // PUT /users/:id - 更新用户
-  .put("/:id", zValidator("json", updateUserSchema), async (c) => {
-    const id = Number(c.req.param("id"));
-    const data = c.req.valid("json");
+  .put(
+    "/:id",
+    zValidator("param", idParamSchema),
+    zValidator("json", updateUserSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const data = c.req.valid("json");
 
-    if (Number.isNaN(id)) {
-      return c.json({ error: "Invalid user ID" }, 400);
+      const updatedUser = await db
+        .update(users)
+        .set(data)
+        .where(eq(users.id, id))
+        .returning();
+
+      if (updatedUser.length === 0) {
+        return c.json({ error: "User not found" }, 404);
+      }
+
+      return c.json({ user: updatedUser[0] });
     }
-
-    const updatedUser = await db
-      .update(users)
-      .set(data)
-      .where(eq(users.id, id))
-      .returning();
-
-    if (updatedUser.length === 0) {
-      return c.json({ error: "User not found" }, 404);
-    }
-
-    return c.json({ user: updatedUser[0] });
-  })
+  )
   // DELETE /users/:id - 删除用户
-  .delete("/:id", async (c) => {
-    const id = Number(c.req.param("id"));
-
-    if (Number.isNaN(id)) {
-      return c.json({ error: "Invalid user ID" }, 400);
-    }
+  .delete("/:id", zValidator("param", idParamSchema), async (c) => {
+    const { id } = c.req.valid("param");
 
     const deletedUser = await db
       .delete(users)
