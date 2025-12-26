@@ -3,13 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@working-app/shared": ["packages/shared/src"],
       "@working-app/client": ["packages/client/src"],
       "@working-app/server": ["packages/server/src"]
     }
   },
   "references": [
-    { "path": "./packages/shared" },
     { "path": "./packages/client" },
     { "path": "./packages/server" }
   ],
