@@ -52,9 +52,9 @@ export const logErrorAtom = atom(
     const appError: AppError = {
       id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo?.componentStack ?? undefined,
       timestamp: Date.now(),
+      ...(error.stack ? { stack: error.stack } : {}),
+      ...(errorInfo?.componentStack ? { componentStack: errorInfo.componentStack } : {}),
     };
 
     // 设置当前错误
@@ -65,7 +65,7 @@ export const logErrorAtom = atom(
     set(errorHistoryAtom, [appError, ...history].slice(0, 10));
 
     // 开发环境下打印错误
-    if (import.meta.env.DEV) {
+    if (import.meta.env?.DEV) {
       console.group("🚨 ErrorBoundary caught an error");
       console.error("Error:", error);
       if (errorInfo?.componentStack) {
